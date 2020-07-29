@@ -1,0 +1,258 @@
+var root = "http://comp426.cs.unc.edu:3001/";
+
+
+$(document).ready(() => {
+    var time = 0;
+    var us = {lat: 37.0902, lng: -97.7129};
+        var map = new google.maps.Map(document.getElementById('map'), {
+          center: us,
+          zoom: 4.7,
+          mapTypeControl: false,
+            streetViewControl: false,
+          styles: [
+            {elementType: 'geometry', stylers: [{color: '#242f3e'}]},
+            {elementType: 'labels.text.stroke', stylers: [{color: '#242f3e'}]},
+            {elementType: 'labels.text.fill', stylers: [{color: '#746855'}]},
+            {
+              featureType: 'administrative.locality',
+              elementType: 'labels.text.fill',
+              stylers: [{color: '#d59563'}]
+            },
+            {
+              featureType: 'poi',
+              elementType: 'labels.text.fill',
+              stylers: [{color: '#d59563'}]
+            },
+            {
+              featureType: 'poi.park',
+              elementType: 'geometry',
+              stylers: [{color: '#263c3f'}]
+            },
+            {
+              featureType: 'poi.park',
+              elementType: 'labels.text.fill',
+              stylers: [{color: '#6b9a76'}]
+            },
+            {
+              featureType: 'road',
+              elementType: 'geometry',
+              stylers: [{color: '#38414e'}]
+            },
+            {
+              featureType: 'road',
+              elementType: 'geometry.stroke',
+              stylers: [{color: '#212a37'}]
+            },
+            {
+              featureType: 'road',
+              elementType: 'labels.text.fill',
+              stylers: [{color: '#9ca5b3'}]
+            },
+            {
+              featureType: 'road.highway',
+              elementType: 'geometry',
+              stylers: [{color: '#746855'}]
+            },
+            {
+              featureType: 'road.highway',
+              elementType: 'geometry.stroke',
+              stylers: [{color: '#1f2835'}]
+            },
+            {
+              featureType: 'road.highway',
+              elementType: 'labels.text.fill',
+              stylers: [{color: '#f3d19c'}]
+            },
+            {
+              featureType: 'transit',
+              elementType: 'geometry',
+              stylers: [{color: '#2f3948'}]
+            },
+            {
+              featureType: 'transit.station',
+              elementType: 'labels.text.fill',
+              stylers: [{color: '#d59563'}]
+            },
+            {
+              featureType: 'water',
+              elementType: 'geometry',
+              stylers: [{color: '#17263c'}]
+            },
+            {
+              featureType: 'water',
+              elementType: 'labels.text.fill',
+              stylers: [{color: '#515c6d'}]
+            },
+            {
+              featureType: 'water',
+              elementType: 'labels.text.stroke',
+              stylers: [{color: '#17263c'}]
+            }
+          ]
+        });
+    $("#flight-map-container").hide();
+    $('#login-button').on('click', () => {
+    event.preventDefault()
+	let user = $('#username-input').val();
+	let pass = $('#password-input').val();
+
+	$.ajax(root + "sessions",
+	       {
+		   type: "POST",
+		   xhrFields: {withCredentials: true},
+		   data: {
+		       user: {
+			   username: user,
+			   password: pass
+		       }
+		   },
+		   success: () => {
+               generateContent();
+		   },
+		   error: (jqxhr, status, error) => {
+		       alert("error");
+		   }
+	       });
+    });
+    
+    $('#logout-button').on('click', () => {
+    event.preventDefault()
+	
+
+	$.ajax( root + "sessions",
+	       {
+		   type: "DELETE",
+		   xhrFields: {withCredentials: true},
+		   success: () => {
+               $(".login-container").show();
+               $("#flight-map-container").hide();
+		   }
+	       });
+    });
+    
+    $('#new-account-button').on('click', () => {
+    event.preventDefault()
+	let user = $('#new-username-input').val();
+	let pass = $('#new-password-input').val();
+
+
+	$.ajax(root + "users",
+	       {
+		   type: "POST",
+		   xhrFields: {withCredentials: true},
+		   data: {
+		       user: {
+			   username: user,
+			   password: pass
+		       }
+		   },
+		   success: () => {
+		   },
+		   error: (jqxhr, status, error) => {
+		       alert("error");
+		   }
+	       });
+    });
+    
+    function generateContent() {
+        $(".login-container").hide();
+        $("#flight-map-container").show();
+        //make the map
+        //buildAirports();
+        getFlights();
+        
+    }
+    
+    $("#time-slider").on("input", function() {
+        time = $(this).val();
+        console.log(time);
+        
+        myDate = new Date(1000*time);
+        console.log(myDate.toUTCString());
+    });
+    
+    function buildAirports() {
+        
+        $.ajax(root + "airports",
+	       {
+		   type: "GET",
+		   xhrFields: {withCredentials: true},
+		   success: (airports) => {
+                for (let i=0; i<airports.length; i++) {
+                  var airport = airports[i];
+                  var marker = new google.maps.Marker({
+                    position: {lat: Number(airport.latitude), lng: Number(airport.longitude)},
+                    map: map,
+                    icon: "airport.png",
+                    size: new google.maps.Size(100,100),
+                    title: airport.code
+                  });
+		        }
+		   },
+		   error: (jqxhr, status, error) => {
+		       alert("error");
+		   }
+	       });
+        
+    }
+    function getFlights() {
+        var departureCoords;
+        $.ajax(root + "airports/118235",
+	       {
+		   type: "GET",
+		   xhrFields: {withCredentials: true},
+		   success: (airport) => {
+                    console.log(airport.latitude+", "+airport.longitude);
+		          departureCoords = {lat: Number(airport.latitude), lng: Number(airport.longitude)}
+                  var marker = new google.maps.Marker({
+                    position: airportCoords,
+                    map: map,
+                    title: airport.code
+                  });
+		      }
+	       });
+        
+        
+        
+        $.ajax(root + "flights?filter[departure_id]=118235",
+	       {
+		   type: "GET",
+		   xhrFields: {withCredentials: true},
+		   success: (flights) => {
+                for (let i=0; i<flights.length; i++) {
+                  var flight = flights[i];
+                    console.log(flight.arrival_id);
+		          $.ajax(root + "airports/" + flight.arrival_id,
+                        {
+                      type: "GET",
+                      xhrFields: {withCredentials: true},
+		              success: (airport) => {
+                          var arrivalCoords = {lat: Number(airport.latitude), lng: Number(airport.longitude)}
+                          var marker = new google.maps.Marker({
+                            position: arrivalCoords,
+                            map: map,
+                            icon: "airport.png",
+                            size: new google.maps.Size(100,100),
+                            title: airport.code
+                          });
+                          var flightPath = new google.maps.Polyline({
+                          path: [departureCoords,arrivalCoords],
+                          geodesic: true,
+                          strokeColor: '#FF0000',
+                          strokeOpacity: 1.0,
+                          strokeWeight: 2
+                          });
+
+                        flightPath.setMap(map);
+                  }
+                  
+		        }
+		   );
+	       };
+        }
+
+        }
+    );}
+});
+
+
